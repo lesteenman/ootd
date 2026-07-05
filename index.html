@@ -182,6 +182,27 @@
 
   footer.foot{padding:14px 22px 26px;color:var(--ink-soft);font-size:11px;border-top:1px solid var(--line)}
   .nomap{padding:40px;text-align:center;color:var(--wine);font-style:italic}
+
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+  .seg button{font-family:inherit;font-size:12.5px;padding:6px 12px;background:var(--panel-2);color:var(--ink-soft);border:0;cursor:pointer;transition:background .14s,color .14s}
+  .seg button[aria-pressed="true"]{background:var(--sea);color:#fff}
+  .seg button+button{border-left:1px solid var(--line)}
+  .marker.active2{width:26px;height:26px;background:var(--violet);border-color:#fff;z-index:6}
+  .marker.active2::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--violet);opacity:.7;animation:pulse 1.6s ease-out infinite}
+  @media (prefers-reduced-motion:reduce){.marker.active2::after{animation:none}}
+  .dayrow{display:grid;grid-template-columns:58px 1fr;gap:10px;padding:8px 11px;margin:0 10px 3px 0;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:background .14s,border-color .14s}
+  .dayrow:hover{background:var(--panel-2)}
+  .dayrow.active{background:var(--panel-2);border-color:var(--gold)}
+  .dayrow.dual.active{border-color:var(--violet)}
+  .dayrow .dnum{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;padding-top:1px}
+  .dayrow .dnum small{display:block;color:var(--ink-soft);font-size:9.5px;letter-spacing:.03em}
+  .dayrow .locs{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .loclabel{display:flex;gap:8px;align-items:baseline}
+  .lbadge{flex:none;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:5px;font-family:ui-monospace,Menlo,monospace}
+  .lbadge.l1{background:color-mix(in srgb,var(--gold) 22%,transparent);color:var(--gold)}
+  .lbadge.l2{background:color-mix(in srgb,var(--violet) 26%,transparent);color:var(--violet)}
+  .dayrow .place{font-weight:600;font-size:13.5px}
+  .dayrow .legttl{color:var(--ink-soft);font-size:12px}
   ::selection{background:var(--gold);color:#241a08}
 </style>
 
@@ -194,13 +215,17 @@
 <div class="wrap">
   <section class="mapside">
     <div class="controls">
-      <div class="grp">
-        <button class="ctl" id="prev" title="Previous leg">◀</button>
-        <button class="ctl primary" id="play" title="Play the voyage">▶ Play</button>
-        <button class="ctl" id="next" title="Next leg">▶</button>
+      <div class="seg" role="group" aria-label="View mode">
+        <button data-mode="session" aria-pressed="true">By session</button>
+        <button data-mode="day" aria-pressed="false">By day</button>
       </div>
-      <span class="legnum label">Leg <b id="legNow">1</b>/<b id="legTot">19</b></span>
-      <input type="range" id="slider" min="0" max="18" value="0" aria-label="Voyage progress">
+      <div class="grp">
+        <button class="ctl" id="prev" title="Previous">◀</button>
+        <button class="ctl primary" id="play" title="Play through">▶ Play</button>
+        <button class="ctl" id="next" title="Next">▶</button>
+      </div>
+      <span class="legnum label" id="posReadout">Leg 1 / 19</span>
+      <input type="range" id="slider" min="0" max="18" value="0" aria-label="Progress">
       <div class="grp">
         <label class="chk"><input type="checkbox" id="reveal"> reveal as sailed</label>
         <label class="chk"><input type="checkbox" id="showRoute" checked> route</label>
@@ -392,26 +417,61 @@ const LEGS = [
    ]},
 ];
 
+/* ---------- day-by-day model (Thylea's own calendar) ---------- */
+// Loop II begins five days BEFORE Session 1 (day 1) and runs to day 2,
+// so days 1 & 2 exist in BOTH loops — the party is in two places at once.
+// [worldDay, markerId, legIndex]
+const DAYS_L1=[
+ [1,'inn',0],[2,'oracle',1],[3,'estoria',2],[4,'oldwoods',3],[5,'estoria',2],
+ [6,'mithral',4],[7,'mithral',4],
+ [8,'mytros',5],[9,'mytros',5],[10,'mytros',5],[11,'mytros',5],[12,'mytros',5],
+ [13,'telamok',6],[14,'telamok',6],[15,'telamok',6],[16,'telamok',6],
+ [17,'mytros',7],[18,'mytros',7],[19,'mytros',7],[20,'mytros',7],[21,'mytros',7],
+ [22,'mytros',7],[23,'mytros',7],[24,'mytros',7],[25,'mytros',7],[26,'mytros',7],
+ [27,'mytros',7],[28,'mytros',7],[29,'mytros',7],[30,'mytros',7],
+ [31,'mithral',8],[32,'deadfalls',8],[33,'mytros',9],
+ [34,'scorpion',10],[35,'scorpion',10],[36,'fates',11],
+ [37,'fire',12],[38,'fire',12],[39,'fire',12],[40,'khronos',13],[41,'khronos',13],
+];
+const DAYS_L2=[
+ [-5,'goldenheart',14],[-4,'themis',15],[-3,'themis',15],[-2,'themis',15],[-1,'themis',15],
+ [0,'chimera',16],[1,'fates',17],[2,'yonder',18],
+];
+const L2_OFFSET=47; // local (lived) day = world day + 47 in Loop II
+const _dmap={};
+DAYS_L1.forEach(([d,m,l])=>{(_dmap[d]=_dmap[d]||{day:d}).l1={m,l};});
+DAYS_L2.forEach(([d,m,l])=>{(_dmap[d]=_dmap[d]||{day:d}).l2={m,l};});
+const DAYIDX=Object.values(_dmap).sort((a,b)=>a.day-b.day);
+
 /* ---------- state ---------- */
+const SVGNS="http://www.w3.org/2000/svg";
 const LS_KEY = "thylea-pins-v1";
 let pos = {};
 try{ pos = JSON.parse(localStorage.getItem(LS_KEY)) || {}; }catch(e){ pos = {}; }
 function px(id){ return pos[id] || {x:MARKERS[id].x, y:MARKERS[id].y}; }
 
-let active = 0, editing = false, playing = false, playTimer = null;
+let mode = "session";       // 'session' | 'day'
+let si = 0;                 // active leg index (session mode)
+let di = 0;                 // active day index (day mode)
+let editing = false, playing = false, playTimer = null;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+const curMax = ()=> mode==="session" ? LEGS.length-1 : DAYIDX.length-1;
+const curIdx = ()=> mode==="session" ? si : di;
 
-/* ---------- build map markers ---------- */
-const frame = document.getElementById("mapFrame");
-const img = document.getElementById("mapImg");
-const svg = document.getElementById("routeSvg");
-const tip = document.getElementById("tip");
+/* ---------- DOM refs ---------- */
+const frame=document.getElementById("mapFrame"), img=document.getElementById("mapImg"),
+      svg=document.getElementById("routeSvg"), tip=document.getElementById("tip"),
+      panel=document.getElementById("panel"), slider=document.getElementById("slider"),
+      posReadout=document.getElementById("posReadout"), playBtn=document.getElementById("play"),
+      revealChk=document.getElementById("reveal"), showRouteChk=document.getElementById("showRoute"),
+      editBtn=document.getElementById("editBtn"), copyBtn=document.getElementById("copyBtn"),
+      resetBtn=document.getElementById("resetBtn"), editHint=document.getElementById("editHint"),
+      segBtns=Array.from(document.querySelectorAll(".seg button"));
 const markerEls = {};
 
+/* ---------- build map markers ---------- */
 if(MAP_SRC && MAP_SRC.indexOf("__MAP")!==0){ img.src = MAP_SRC; }
-else {
-  frame.innerHTML = '<div class="nomap">Map image not embedded yet.</div>';
-}
+else { frame.innerHTML = '<div class="nomap">Map image not embedded yet.</div>'; }
 
 Object.keys(MARKERS).forEach(id=>{
   const m = MARKERS[id];
@@ -423,7 +483,7 @@ Object.keys(MARKERS).forEach(id=>{
   el.style.top  = px(id).y+"%";
   el.addEventListener("mouseenter", ()=>showTip(id));
   el.addEventListener("mouseleave", hideTip);
-  el.addEventListener("click", (e)=>{ if(!editing){ jumpToMarker(id); } });
+  el.addEventListener("click", ()=>{ if(!editing) markerClick(id); });
   frame.appendChild(el);
   markerEls[id] = el;
   enableDrag(el, id);
@@ -432,15 +492,15 @@ Object.keys(MARKERS).forEach(id=>{
 function showTip(id){
   const p = px(id);
   tip.textContent = MARKERS[id].name;
-  tip.style.left = p.x+"%";
-  tip.style.top = p.y+"%";
+  tip.style.left = p.x+"%"; tip.style.top = p.y+"%";
   tip.classList.add("show");
 }
 function hideTip(){ tip.classList.remove("show"); }
 
-/* ---------- chronicle panel ---------- */
-const panel = document.getElementById("panel");
-function buildPanel(){
+/* ---------- panel (session + day) ---------- */
+function buildPanel(){ mode==="session" ? buildPanelSession() : buildPanelDay(); }
+
+function buildPanelSession(){
   panel.innerHTML = "";
   let lastLoop = null;
   LEGS.forEach((leg,i)=>{
@@ -450,9 +510,9 @@ function buildPanel(){
       } else {
         const j = document.createElement("div");
         j.className="jump";
-        j.innerHTML = "<b>Khronos turns back the hourglass.</b> The party wakes on day −5 — five days before they ever reached Fire Island — to sail a second, secret voyage.";
+        j.innerHTML = "<b>Khronos turns back the hourglass.</b> The party is thrown back to day −5 — five days before they first gathered at the Sour Vintage — to sail a second, secret voyage that ends the very day the campaign began.";
         panel.appendChild(j);
-        panel.appendChild(loopHead("Loop II · Turning Back Time"));
+        panel.appendChild(loopHead("Loop II · Before the Beginning"));
       }
       lastLoop = leg.loop;
     }
@@ -468,135 +528,183 @@ function loopHead(txt){
 function legItem(leg,i){
   const el = document.createElement("div");
   el.className="leg"; el.dataset.i=i; el.setAttribute("role","button"); el.tabIndex=0;
-  let ses = leg.ses.map(s=>{
-    const cls = s.il ? ' class="interlude"' : '';
-    const sn = s.il ? '' : '<span class="sn">'+s.n+'</span>';
-    const wrap = s.il ? '<li><span class="interlude">'+s.t+'</span></li>'
-                      : '<li>'+sn+'<span>'+s.t+'</span></li>';
-    return wrap;
-  }).join("");
+  let ses = leg.ses.map(s=> s.il
+      ? '<li><span class="interlude">'+s.t+'</span></li>'
+      : '<li><span class="sn">'+s.n+'</span><span>'+s.t+'</span></li>').join("");
   el.innerHTML =
     '<div class="badge">'+(i+1)+'</div>'+
     '<div><div class="ttl display">'+leg.title+'</div>'+
     '<div class="meta"><span class="reg">'+leg.region+'</span><span class="days">'+leg.days+'</span></div>'+
     '<div class="body"><p class="blurb">'+leg.blurb+'</p><ul class="ses">'+ses+'</ul></div></div>';
-  el.addEventListener("click", ()=>setActive(i,true));
-  el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();setActive(i,true);} });
+  el.addEventListener("click", ()=>setPos(i,true));
+  el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();setPos(i,true);} });
   return el;
 }
 
-/* ---------- active leg / route ---------- */
-function setActive(i, fromPanel){
-  active = Math.max(0, Math.min(LEGS.length-1, i));
-  document.getElementById("slider").value = active;
-  document.getElementById("legNow").textContent = active+1;
-  document.querySelectorAll(".leg").forEach(el=>{
-    el.classList.toggle("active", +el.dataset.i===active);
-  });
-  const activeEl = document.querySelector('.leg[data-i="'+active+'"]');
-  if(activeEl && fromPanel!=="noscroll") activeEl.scrollIntoView({block:"nearest", behavior: reduceMotion?"auto":"smooth"});
+function buildPanelDay(){
+  panel.innerHTML = "";
+  const note=document.createElement("div");
+  note.className="jump";
+  note.innerHTML="<b>Thylea's calendar.</b> Days are counted from the party's first day (Session 1 = day 1). After Khronos, the party is thrown back to <b>day −5</b> — before the campaign began — and their second voyage runs until day 2. So on <b>days 1 & 2</b> they stand in two places at once; those paradox days show both loops.";
+  panel.appendChild(note);
+  DAYIDX.forEach((d,i)=>panel.appendChild(dayRow(d,i)));
+}
+function shortName(id){ return MARKERS[id].name.split(" · ")[0]; }
+function locLine(cls,label,ref){
+  const leg=LEGS[ref.l];
+  return '<div class="loclabel"><span class="lbadge '+cls+'">'+label+'</span>'+
+         '<span><span class="place">'+shortName(ref.m)+'</span> '+
+         '<span class="legttl">— '+leg.title+'</span></span></div>';
+}
+function dayRow(d,i){
+  const el=document.createElement("div");
+  el.className="dayrow"+((d.l1&&d.l2)?" dual":"");
+  el.dataset.d=i; el.tabIndex=0; el.setAttribute("role","button");
+  const dayLabel = (d.day>0?d.day:d.day===0?"0":d.day);
+  const sub = d.l2 ? '<small>lived d'+(d.day+L2_OFFSET)+'</small>' : '<small>&nbsp;</small>';
+  let locs="";
+  if(d.l1) locs+=locLine("l1","Loop I",d.l1);
+  if(d.l2) locs+=locLine("l2","Loop II",d.l2);
+  el.innerHTML='<div class="dnum">'+dayLabel+sub+'</div><div class="locs">'+locs+'</div>';
+  el.addEventListener("click", ()=>setPos(i,true));
+  el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();setPos(i,true);} });
+  return el;
+}
+
+/* ---------- selection / highlight ---------- */
+function setPos(v, scroll){
+  v=Math.max(0, Math.min(curMax(), v));
+  if(mode==="session") si=v; else di=v;
+  slider.value=v;
+  updateReadout();
+  highlightPanel(scroll);
   updateMarkers();
   drawRoute();
 }
-function jumpToMarker(id){
-  // find the leg at this marker at or after the current one, else the first
-  let idx = LEGS.findIndex((l,i)=>i>=active && l.m===id);
-  if(idx<0) idx = LEGS.findIndex(l=>l.m===id);
-  if(idx>=0) setActive(idx,true);
+function updateReadout(){
+  if(mode==="session"){ posReadout.textContent="Leg "+(si+1)+" / "+LEGS.length; }
+  else{
+    const d=DAYIDX[di];
+    let t="Day "+(d.day>0?d.day:d.day);
+    if(d.l1&&d.l2) t+="  ·  both loops";
+    else if(d.l2) t+="  ·  lived day "+(d.day+L2_OFFSET);
+    posReadout.textContent=t;
+  }
 }
+function highlightPanel(scroll){
+  if(mode==="session"){
+    document.querySelectorAll(".leg").forEach(el=>el.classList.toggle("active",+el.dataset.i===si));
+    if(scroll){ const a=document.querySelector('.leg[data-i="'+si+'"]'); if(a) a.scrollIntoView({block:"nearest",behavior:reduceMotion?"auto":"smooth"}); }
+  } else {
+    document.querySelectorAll(".dayrow").forEach(el=>el.classList.toggle("active",+el.dataset.d===di));
+    if(scroll){ const a=document.querySelector('.dayrow[data-d="'+di+'"]'); if(a) a.scrollIntoView({block:"nearest",behavior:reduceMotion?"auto":"smooth"}); }
+  }
+}
+function markerClick(id){
+  if(mode==="session"){
+    let idx=LEGS.findIndex((l,i)=>i>=si && l.m===id);
+    if(idx<0) idx=LEGS.findIndex(l=>l.m===id);
+    if(idx>=0) setPos(idx,true);
+  } else {
+    const hit=d=>(d.l1&&d.l1.m===id)||(d.l2&&d.l2.m===id);
+    let idx=DAYIDX.findIndex((d,i)=>i>=di && hit(d));
+    if(idx<0) idx=DAYIDX.findIndex(hit);
+    if(idx>=0) setPos(idx,true);
+  }
+}
+
+/* ---------- map markers + route ---------- */
 function updateMarkers(){
-  const reveal = document.getElementById("reveal").checked;
-  const activeId = LEGS[active].m;
-  const sailedIds = new Set(LEGS.slice(0,active+1).map(l=>l.m));
-  Object.keys(markerEls).forEach(id=>{
-    const el = markerEls[id];
-    el.classList.remove("active","dim","hiddenPin");
-    if(reveal && !sailedIds.has(id)){ el.classList.add("hiddenPin"); return; }
-    if(id===activeId){ el.classList.add("active"); }
-    else if(!sailedIds.has(id)){ el.classList.add("dim"); }
-  });
+  const reveal=revealChk.checked;
+  Object.values(markerEls).forEach(el=>el.classList.remove("active","active2","dim","hiddenPin"));
+  if(mode==="session"){
+    const activeId=LEGS[si].m;
+    const sailed=new Set(LEGS.slice(0,si+1).map(l=>l.m));
+    Object.keys(markerEls).forEach(id=>{
+      const el=markerEls[id];
+      if(reveal && !sailed.has(id)){ el.classList.add("hiddenPin"); return; }
+      if(id===activeId) el.classList.add("active");
+      else if(!sailed.has(id)) el.classList.add("dim");
+    });
+  } else {
+    const d=DAYIDX[di];
+    const id1=d.l1&&d.l1.m, id2=d.l2&&d.l2.m;
+    let seen=null;
+    if(reveal){ seen=new Set(); DAYIDX.slice(0,di+1).forEach(x=>{ if(x.l1)seen.add(x.l1.m); if(x.l2)seen.add(x.l2.m); }); }
+    Object.keys(markerEls).forEach(id=>{
+      const el=markerEls[id];
+      if(seen && !seen.has(id)){ el.classList.add("hiddenPin"); return; }
+      if(id===id1) el.classList.add("active");
+      else if(id===id2) el.classList.add("active2");
+      else el.classList.add("dim");
+    });
+  }
+}
+function routeLine(ids,color){
+  const P=id=>{const p=px(id);return [p.x/100*frame.clientWidth, p.y/100*frame.clientHeight];};
+  const path=[]; ids.forEach(id=>{const pt=P(id);const last=path[path.length-1];if(!last||last[0]!==pt[0]||last[1]!==pt[1])path.push(pt);});
+  if(path.length>1){
+    const line=document.createElementNS(SVGNS,"path");
+    line.setAttribute("d","M"+path.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" L"));
+    line.setAttribute("fill","none"); line.setAttribute("stroke",color);
+    line.setAttribute("stroke-width","2.4"); line.setAttribute("stroke-linejoin","round");
+    line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-dasharray","2 7"); line.setAttribute("opacity","0.9");
+    svg.appendChild(line);
+  }
+  path.forEach(p=>{const c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",p[0]);c.setAttribute("cy",p[1]);c.setAttribute("r","2.6");c.setAttribute("fill",color);c.setAttribute("opacity","0.5");svg.appendChild(c);});
 }
 function drawRoute(){
   svg.innerHTML="";
-  if(!document.getElementById("showRoute").checked) return;
-  const w = frame.clientWidth, h = frame.clientHeight;
-  if(!w||!h) return;
-  const pts = LEGS.slice(0,active+1).map(l=>{
-    const p = px(l.m); return [p.x/100*w, p.y/100*h];
-  });
-  // de-dupe consecutive identical points for cleaner path
-  const path = [];
-  pts.forEach(pt=>{ const last=path[path.length-1]; if(!last||last[0]!==pt[0]||last[1]!==pt[1]) path.push(pt); });
-  if(path.length>1){
-    const d = "M"+path.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" L");
-    const line = document.createElementNS("http://www.w3.org/2000/svg","path");
-    line.setAttribute("d",d);
-    line.setAttribute("fill","none");
-    line.setAttribute("stroke","var(--gold)");
-    line.setAttribute("stroke-width","2.4");
-    line.setAttribute("stroke-linejoin","round");
-    line.setAttribute("stroke-linecap","round");
-    line.setAttribute("stroke-dasharray","2 7");
-    line.setAttribute("opacity","0.9");
-    svg.appendChild(line);
+  if(!showRouteChk.checked) return;
+  if(!frame.clientWidth||!frame.clientHeight) return;
+  if(mode==="session"){
+    routeLine(LEGS.slice(0,si+1).map(l=>l.m),"var(--gold)");
+  } else {
+    const upto=DAYIDX.slice(0,di+1);
+    routeLine(upto.filter(x=>x.l1).map(x=>x.l1.m),"var(--gold)");
+    routeLine(upto.filter(x=>x.l2).map(x=>x.l2.m),"var(--violet)");
   }
-  // marks at each waypoint
-  path.forEach((p,idx)=>{
-    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-    c.setAttribute("cx",p[0]); c.setAttribute("cy",p[1]); c.setAttribute("r","2.6");
-    c.setAttribute("fill","var(--gold)"); c.setAttribute("opacity","0.55");
-    svg.appendChild(c);
-  });
 }
 
 /* ---------- dragging ---------- */
 function enableDrag(el, id){
   let dragging=false;
-  el.addEventListener("pointerdown", e=>{
-    if(!editing) return;
-    dragging=true; el.setPointerCapture(e.pointerId); e.preventDefault();
-  });
+  el.addEventListener("pointerdown", e=>{ if(!editing) return; dragging=true; el.setPointerCapture(e.pointerId); e.preventDefault(); });
   el.addEventListener("pointermove", e=>{
     if(!dragging) return;
-    const r = frame.getBoundingClientRect();
-    let x = (e.clientX-r.left)/r.width*100;
-    let y = (e.clientY-r.top)/r.height*100;
-    x=Math.max(0,Math.min(100,x)); y=Math.max(0,Math.min(100,y));
+    const r=frame.getBoundingClientRect();
+    let x=Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100));
+    let y=Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100));
     pos[id]={x:+x.toFixed(2), y:+y.toFixed(2)};
     el.style.left=x+"%"; el.style.top=y+"%";
-    showTip(id);
-    drawRoute();
+    showTip(id); drawRoute();
   });
-  el.addEventListener("pointerup", e=>{
-    if(!dragging) return;
-    dragging=false;
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(pos)); }catch(err){}
-    hideTip();
-  });
+  el.addEventListener("pointerup", ()=>{ if(!dragging) return; dragging=false; try{ localStorage.setItem(LS_KEY, JSON.stringify(pos)); }catch(err){} hideTip(); });
 }
 
 /* ---------- controls ---------- */
-const playBtn=document.getElementById("play");
 function stopPlay(){ playing=false; if(playTimer)clearInterval(playTimer); playTimer=null; playBtn.textContent="▶ Play"; playBtn.setAttribute("aria-pressed","false"); }
 function startPlay(){
-  if(active>=LEGS.length-1) setActive(0,"noscroll");
+  if(curIdx()>=curMax()) setPos(0,false);
   playing=true; playBtn.textContent="❚❚ Pause"; playBtn.setAttribute("aria-pressed","true");
-  playTimer=setInterval(()=>{
-    if(active>=LEGS.length-1){ stopPlay(); return; }
-    setActive(active+1,true);
-  }, reduceMotion?900:1700);
+  playTimer=setInterval(()=>{ if(curIdx()>=curMax()){ stopPlay(); return; } setPos(curIdx()+1,true); }, reduceMotion?900:1500);
 }
+function switchMode(m){
+  if(mode===m) return;
+  stopPlay(); mode=m;
+  segBtns.forEach(b=>b.setAttribute("aria-pressed", b.dataset.mode===m?"true":"false"));
+  slider.max=curMax();
+  buildPanel();
+  setPos(curIdx(), true);
+}
+segBtns.forEach(b=>b.addEventListener("click", ()=>switchMode(b.dataset.mode)));
 playBtn.addEventListener("click", ()=> playing?stopPlay():startPlay());
-document.getElementById("next").addEventListener("click", ()=>{stopPlay();setActive(active+1,true);});
-document.getElementById("prev").addEventListener("click", ()=>{stopPlay();setActive(active-1,true);});
-document.getElementById("slider").addEventListener("input", e=>{stopPlay();setActive(+e.target.value,true);});
-document.getElementById("reveal").addEventListener("change", ()=>{updateMarkers();drawRoute();});
-document.getElementById("showRoute").addEventListener("change", drawRoute);
+document.getElementById("next").addEventListener("click", ()=>{stopPlay();setPos(curIdx()+1,true);});
+document.getElementById("prev").addEventListener("click", ()=>{stopPlay();setPos(curIdx()-1,true);});
+slider.addEventListener("input", e=>{stopPlay();setPos(+e.target.value,true);});
+revealChk.addEventListener("change", ()=>{updateMarkers();drawRoute();});
+showRouteChk.addEventListener("change", drawRoute);
 
-const editBtn=document.getElementById("editBtn"),
-      copyBtn=document.getElementById("copyBtn"),
-      resetBtn=document.getElementById("resetBtn"),
-      editHint=document.getElementById("editHint");
 editBtn.addEventListener("click", ()=>{
   editing=!editing;
   editBtn.setAttribute("aria-pressed", editing?"true":"false");
@@ -618,22 +726,21 @@ resetBtn.addEventListener("click", ()=>{
   Object.keys(markerEls).forEach(id=>{markerEls[id].style.left=MARKERS[id].x+"%";markerEls[id].style.top=MARKERS[id].y+"%";});
   drawRoute(); editHint.textContent="Pins reset to defaults.";
 });
-
 document.addEventListener("keydown", e=>{
-  if(e.target.tagName==="INPUT") return;
-  if(e.key==="ArrowRight"){stopPlay();setActive(active+1,true);}
-  if(e.key==="ArrowLeft"){stopPlay();setActive(active-1,true);}
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT") return;
+  if(e.key==="ArrowRight"){stopPlay();setPos(curIdx()+1,true);}
+  if(e.key==="ArrowLeft"){stopPlay();setPos(curIdx()-1,true);}
 });
 
 /* ---------- init ---------- */
-document.getElementById("legTot").textContent = LEGS.length;
 document.getElementById("statLegs").textContent = LEGS.length;
 document.getElementById("foot").innerHTML =
   "Reconstructed from the campaign's session notes and the day-by-day location ledger · "+
-  "Loop I: days 1–41 &nbsp;·&nbsp; Loop II (after the time jump): days −5 → 2 (local 42–49)";
+  "Loop I: days 1–41 &nbsp;·&nbsp; Loop II (thrown back before day 1): days −5 → 2, lived on days 42–49";
 buildPanel();
+slider.max=curMax();
 
-function refresh(){ setActive(active,"noscroll"); }
+function refresh(){ setPos(curIdx(), false); }
 if(img.complete && img.naturalWidth){ refresh(); }
 img.addEventListener("load", refresh);
 new ResizeObserver(drawRoute).observe(frame);
