@@ -1,0 +1,70 @@
+name: Deploy site
+
+# One GitHub Pages site holds both versions:
+#   /          the `main` branch (the public site)
+#   /preview/  the `preview` branch, if it exists
+# Runs when main changes, after a successful build check of `preview`, or by hand.
+# (A run triggered by workflow_run runs on the default branch, which is what lets it
+# deploy to the github-pages environment.)
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: [Build check]
+    types: [completed]
+    branches: [preview]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - name: Check out preview (if it exists)
+        id: preview
+        run: |
+          if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}" preview >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.preview.outputs.exists == 'true'
+        with:
+          ref: preview
+          path: preview
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r main/site/requirements.txt
+      - name: Render main
+        run: python main/site/build.py main/data _site
+      - name: Render preview
+        if: steps.preview.outputs.exists == 'true'
+        run: |
+          pip install -r preview/site/requirements.txt
+          python preview/site/build.py preview/data _site/preview --label "Preview: not published yet"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
