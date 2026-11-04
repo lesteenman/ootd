@@ -16,7 +16,12 @@ legacy/            the original hand-made map page, kept for reference
 
 ## Publishing
 
-Nothing deploys automatically from the vault. To publish new notes:
+Nothing deploys automatically from the vault. The easy way: in the vault repo, run the
+**Publish OotD wiki to preview** workflow (Actions tab → Run workflow). It does steps 1 and 2
+below and opens the pull request of step 3. It needs the vault secret `OOTD_TOKEN` (see
+"One-time setup").
+
+By hand, from a computer with both repos checked out:
 
 1. **Extract** in the vault, into a checkout of this repo on the `preview` branch:
 
@@ -62,5 +67,12 @@ in the vault's campaign `CLAUDE.md`, under "Wiki data".
 
 ## One-time setup
 
-GitHub Pages must use **GitHub Actions** as its source: Settings → Pages → Build and deployment
-→ Source: GitHub Actions.
+1. **Pages source.** In this repo: Settings → Pages → Build and deployment → Source:
+   **GitHub Actions**.
+2. **Token for the publish button.** Create a fine-grained personal access token
+   (GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens):
+   - Repository access: *Only select repositories* → `lesteenman/ootd`
+   - Permissions: **Contents: Read and write**, **Pull requests: Read and write**
+   - An expiry you're happy to renew (the workflow fails with a clear error once it expires)
+3. **Store it in the vault.** In `lesteenman/obsidian-vault`: Settings → Secrets and variables →
+   Actions → New repository secret, named `OOTD_TOKEN`.
