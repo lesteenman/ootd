@@ -1,0 +1,23 @@
+name: Build check
+
+# Renders the site for a pushed `preview` branch or a pull request, to catch errors
+# before anything is deployed. A successful run on `preview` triggers pages.yml,
+# which deploys it to /preview/.
+on:
+  push:
+    branches: [preview]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r site/requirements.txt
+      - run: python site/build.py data _site
