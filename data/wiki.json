@@ -1,7 +1,7 @@
 {
  "format": 1,
  "campaign": "Odyssey of the Dragonlords",
- "source": "2b11548",
+ "source": "f177ee3",
  "map": {
   "image": "media/thylea-map.jpg",
   "width": 1708,
@@ -2689,7 +2689,7 @@
      }
     ]
    },
-   "body": "# Day 5\n\nThe killing of the Basilisks\n\n## Recap\n\n- Shopping in [Estoria](wiki:estoria). [Henake](wiki:henake), who watched the sacrificial rock for us, is found petrified by basilisks. At the inn we hear about the [Mythral Mines](wiki:mythral-mines) and the [Mythral Forge](wiki:mythral-forge) ([Session 12](wiki:session-12)).\n- The order of [Sydon](wiki:sydon-titan) demands we offer ourselves instead, plus 50 oxen. We find the basilisks' lair in the river and learn about [Estor Arklander](wiki:estor-arklander) ([Session 13](wiki:session-13)).\n- We kill the basilisks (The girl who would not be stone) and find the book of [Gareth Nydia](wiki:yendithas), loyal servant of [Rison Phobas](wiki:rison-phobas) ([Session 14](wiki:session-14)).\n- We party for the rest of the day ([Session 15](wiki:session-15)).\n- Epic verse: Tragic tale of Henake",
+   "body": "# Day 5\n\nThe killing of the Basilisks\n\n## Recap\n\n- Shopping in [Estoria](wiki:estoria). [Henake](wiki:henake), who watched the sacrificial rock for us, is found petrified by basilisks. At the inn we hear about the [Mythral Mines](wiki:mythral-mines) and the [Mythral Forge](wiki:mythral-forge) ([Session 12](wiki:session-12)).\n- The order of [Sydon](wiki:sydon-titan) demands we offer ourselves instead, plus 50 oxen. We find the basilisks' lair in the river and learn about [Estor Arklander](wiki:estor-arklander) ([Session 13](wiki:session-13)).\n- We kill the basilisks (Battling the Basilisks) and find the book of [Gareth Nydia](wiki:yendithas), loyal servant of [Rison Phobas](wiki:rison-phobas) ([Session 14](wiki:session-14)).\n- We party for the rest of the day ([Session 15](wiki:session-15)).\n- Epic verse: Tragic tale of Henake",
    "links": [
     "estor-arklander",
     "estoria",
@@ -5318,7 +5318,7 @@
     },
     "day_inferred": true
    },
-   "body": "- We kill the basilisks (song: The girl who would not be stone)\n- We read the history book (what book? likely loot in the lair of the basilisks), some parchment falls out. We learn:\n\t- It's a dragonlord's book. Of [Gareth Nydia](wiki:yendithas), who we later learn is actually me ([Yendithas](wiki:yendithas)).\n\t- His nickname was \"hearsay\". Reason being that \"Gareth Hearsay Nydia\" was an anagram of my full name. Tricky DM!\n\t- Was a loyal servant of [Rison Phobas](wiki:rison-phobas). Perhaps lovers?\n\t- \"A direct descendant of Yendithas\". Well, that's a lie, we now know.\n\n[Rison Phobas](wiki:rison-phobas) was:\n- Loved\n- Compassionate\n- The 2nd in command of, and a lifelong rival of, [Xander Huorath](wiki:xander-huorath), who was authoritarian.\n- Survived the war, and died a natural death later on.",
+   "body": "- We kill the basilisks (song: Battling the Basilisks)\n- We read the history book (what book? likely loot in the lair of the basilisks), some parchment falls out. We learn:\n\t- It's a dragonlord's book. Of [Gareth Nydia](wiki:yendithas), who we later learn is actually me ([Yendithas](wiki:yendithas)).\n\t- His nickname was \"hearsay\". Reason being that \"Gareth Hearsay Nydia\" was an anagram of my full name. Tricky DM!\n\t- Was a loyal servant of [Rison Phobas](wiki:rison-phobas). Perhaps lovers?\n\t- \"A direct descendant of Yendithas\". Well, that's a lie, we now know.\n\n[Rison Phobas](wiki:rison-phobas) was:\n- Loved\n- Compassionate\n- The 2nd in command of, and a lifelong rival of, [Xander Huorath](wiki:xander-huorath), who was authoritarian.\n- Survived the war, and died a natural death later on.",
    "links": [
     "day-5",
     "rison-phobas",
