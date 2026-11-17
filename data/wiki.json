@@ -1,7 +1,7 @@
 {
  "format": 1,
  "campaign": "Odyssey of the Dragonlords",
- "source": "e4a53af",
+ "source": "b7c1c2d",
  "map": {
   "image": "media/thylea-map.jpg",
   "width": 1708,
@@ -5372,7 +5372,7 @@
     },
     "day_inferred": true
    },
-   "body": "- We continue on into the mountain\nNote: this is what happens in the mines themselves. \n- We save 2 centaurs from Troglodytes, Kaluk and Hirak. They have no other information for us.\n- After a short rest, we go back in. [Thyphoon](wiki:thyphoon)'s axe and the bodies (of the Troglodytes?) are gone.\n- We're attacked by Troglodytes again. [Yendithas](wiki:yendithas) is knocked unconscious and we're taken to the king of the troglodytes. \n\t- [Fotkaro](wiki:fotkaro) is/was the \"former king of Troglodytes\". Not certain if I wrote \"former\" since we killed him here or if Fotkaro was a previous one.\n- They're all killed after we solve their riddles three.\nSong: Troglodyte Thunder.",
+   "body": "1. #dragonlords \n\n- We continue on into the mountain\nNote: this is what happens in the mines themselves. \n- We save 2 centaurs from Troglodytes, Kaluk and Hirak. They have no other information for us.\n- After a short rest, we go back in. [Thyphoon](wiki:thyphoon)'s axe and the bodies (of the Troglodytes?) are gone.\n- We're attacked by Troglodytes again. [Yendithas](wiki:yendithas) is knocked unconscious and we're taken to the king of the troglodytes. \n\t- [Fotkaro](wiki:fotkaro) is/was the \"former king of Troglodytes\". Not certain if I wrote \"former\" since we killed him here or if Fotkaro was a previous one.\n- They're all killed after we solve their riddles three.\nSong: Troglodyte Thunder.",
    "links": [
     "day-6",
     "fotkaro",
